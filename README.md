@@ -52,7 +52,7 @@ python manage.py runserver
 # ScreenShots
 
 ### Home
-![Home](screenshots/home.png)
+<img width="1888" height="892" alt="Image" src="https://github.com/user-attachments/assets/b5854c76-d04f-46a6-8f99-4cd4847c360a" />
 
 ### Menu
 ![Menu](screenshots/menu.png)
