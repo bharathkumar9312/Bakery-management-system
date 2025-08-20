@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Customers{% endblock %}
+
+{% block content %}
+<h2>Our Customers</h2>
+<h2>{{ form.instance.pk|yesno:"Update Customer,Add Customer" }}</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save</button>
+</form>
+<a href="{% url 'customers_list' %}">Back to Customers List</a>
+{% endblock %}

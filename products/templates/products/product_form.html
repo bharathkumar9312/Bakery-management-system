@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ form.instance.pk|yesno:"Update Product,Add Product" }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5 d-flex justify-content-center">
+    <div class="card shadow p-4" style="min-width: 400px; max-width: 600px; width: 100%;">
+        <h3 class="card-title text-center mb-4">{{ form.instance.pk|yesno:"Update Product,Add Product" }}</h3>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="mb-3" id="div_id_{{ field.name }}">
+                    {% if field.name == "status" or field.name == "trending" %}
+                        <div class="form-check">
+                            {{ field|add_class:"form-check-input" }}
+                            <label class="form-check-label fw-bold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        </div>
+                    {% else %}
+                        <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
+                        {% if field.name == "category" %}
+                            {{ field|add_class:"form-control form-select" }}
+                        {% else %}
+                            {{ field|add_class:"form-control" }}
+                        {% endif %}
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                    {% endif %}
+                    {% if field.errors %}
+                        <div class="text-danger small">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="{% url 'product_list' %}" class="btn btn-secondary">← Back to Product List</a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('id_category');
+
+    // Get the div wrappers for all price fields
+    const originalPriceDiv = document.getElementById('div_id_original_price');
+    const sellingPriceDiv = document.getElementById('div_id_selling_price');
+    const priceHalfKgDiv = document.getElementById('div_id_price_half_kg');
+    const priceOneKgDiv = document.getElementById('div_id_price_one_kg');
+    const priceSmallDiv = document.getElementById('div_id_price_small');
+    const priceMediumDiv = document.getElementById('div_id_price_medium');
+    const priceLargeDiv = document.getElementById('div_id_price_large');
+
+    // Helper to show/hide elements
+    function setDisplay(element, show) {
+        if (element) {
+            element.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    function togglePriceFields() {
+        if (!categorySelect) return;
+
+        const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+        const selectedCategoryName = selectedOption ? selectedOption.text.trim().toLowerCase() : "";
+
+        // Default: hide all special price fields, show general ones
+        setDisplay(priceHalfKgDiv, false);
+        setDisplay(priceOneKgDiv, false);
+        setDisplay(priceSmallDiv, false);
+        setDisplay(priceMediumDiv, false);
+        setDisplay(priceLargeDiv, false);
+        setDisplay(originalPriceDiv, true);
+        setDisplay(sellingPriceDiv, true);
+
+        if (selectedCategoryName.includes('cake')) {
+            setDisplay(priceHalfKgDiv, true);
+            setDisplay(priceOneKgDiv, true);
+            setDisplay(originalPriceDiv, false); // Hide general if cake
+            setDisplay(sellingPriceDiv, false);  // Hide general if cake
+        } else if (selectedCategoryName.includes('milkshake') || selectedCategoryName.includes('pizza')) {
+            setDisplay(priceSmallDiv, true);
+            setDisplay(priceMediumDiv, true);
+            setDisplay(priceLargeDiv, true);
+            setDisplay(originalPriceDiv, false); // Hide general if milkshake/pizza
+            setDisplay(sellingPriceDiv, false);  // Hide general if milkshake/pizza
+        }
+        // For other categories, the default (general prices visible, special prices hidden) applies
+    }
+
+    if (categorySelect) {
+        togglePriceFields(); // Initial check
+        categorySelect.addEventListener('change', togglePriceFields);
+    } else {
+        // Fallback if category select is not present (should not happen)
+        // Ensure all special prices are hidden and general ones are shown by default.
+        setDisplay(priceHalfKgDiv, false);
+        setDisplay(priceOneKgDiv, false);
+        setDisplay(priceSmallDiv, false);
+        setDisplay(priceMediumDiv, false);
+        setDisplay(priceLargeDiv, false);
+        setDisplay(originalPriceDiv, true);
+        setDisplay(sellingPriceDiv, true);
+    }
+});
+</script>
+{% endblock %}

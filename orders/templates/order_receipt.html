@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+  /* Print Styling */
+  @media print {
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #fff;
+    }
+    #print-button {
+      display: none;
+    }
+    .receipt-copy {
+      page-break-after: always;
+    }
+    .receipt-copy:last-child {
+      page-break-after: auto;
+    }
+    table, th, td {
+      border: 1px solid #000;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+    }
+  }
+</style>
+
+{% for label in copies %}
+<div id="order" style="page-break-after: always; max-width: 800px; margin: auto; padding: 20px; border: 1px solid #ddd; background: #fff;">
+  <div style="text-align: right;"><strong>{{ label }}</strong></div>
+  
+  <!-- Logo, Order Info -->
+  <div style="text-align: center; margin-bottom: 20px;">
+    <img src="{% static 'images/logo.png' %}" alt="Shop Logo" style="max-height: 100px;">
+    {% if order.invoice %}
+<p><strong>Bill No:</strong> {{ order.invoice.id }}</p>
+{% endif %}
+    <p><strong>Order ID: {{ order.id }}</strong></p>
+    <h1>Order Receipt</h1>
+    <p>Order Date: {{ order.date|date:"d M Y" }} | {{ order.date|time:"H:i:s" }}</p>
+  </div>
+
+
+  <!-- Shop Info -->
+  <div style="margin-bottom: 20px;">
+    <strong>Shop Address:</strong> 1/3, Rettai Vaikkal, UTK Malai, Allithurai, Trichy.<br>
+    <strong>Phone Number:</strong> +91-86105 79650
+  </div>
+
+  <!-- Customer Info -->
+  <div style="margin-bottom: 20px;">
+    <strong>Customer Name:</strong> {{ order.customer.name }}<br>
+  </div>
+
+  <!-- Product Table -->
+  <table class="table table-bordered" style="width: 100%; margin-bottom: 20px;">
+    <thead style="background-color: #f8f8f8;">
+      <tr>
+        <th style="text-align: center;">S.No</th>
+        <th style="text-align: left;">Product</th>
+        <th style="text-align: center;">Quantity</th>
+        <th style="text-align: right;">Price</th>
+        <th style="text-align: right;">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in order_items %}
+      <tr>
+        <td style="text-align: center;">{{ forloop.counter }}</td>
+        <td>{{ item.product.name }}</td>
+        <td style="text-align: center;">{{ item.quantity }}</td>
+        <td style="text-align: right;">₹{{ item.price }}</td>
+        <td style="text-align: right;">₹{{ item.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Order Summary and Message/Delivery Info in 2-column layout -->
+<div style="display: flex; justify-content: space-between; margin-top: 20px; gap: 40px;">
+  
+  <!-- Left: Message and Delivery -->
+  <div style="flex: 1; text-align: left;">
+    {% if order.is_customized and order.whatsapp_number %}
+    <p><strong>WhatsApp Number:</strong> {{ order.whatsapp_number }}</p>
+    {% endif %}
+    
+    {% if order.message %}
+    <p><strong>Message:</strong> {{ order.message }}</p>
+    {% endif %}
+    
+    {% if order.delivery_datetime %}
+    <p><strong>Delivery Time:</strong> {{ order.delivery_datetime|date:"d M Y" }} | {{ order.delivery_datetime|time:"H:i" }}</p>
+    {% endif %}
+  </div>
+
+  <!-- Right: Bill Summary -->
+  <div style="flex: 1; text-align: right;">
+    <p><strong>Customized Charge:</strong> ₹{{ order.customization_charge }}</p>
+    <p><strong>Total Amount:</strong> ₹{{ order.total_amount }}</p>
+    <p><strong>Advance Paid:</strong> ₹{{ order.advance_amount }}-{{ order.payment_method }}</p>
+    <p><strong>Remaining Balance:</strong> ₹{{ remaining_balance }}</p>
+  </div>
+
+</div>
+
+
+  <!-- Thank You -->
+  <div style="text-align: center; margin-top: 40px;">
+    <p>Thank you for your order!</p>
+  </div>
+
+</div>
+{% endfor %}
+
+<!-- Print Button -->
+<div style="text-align: center; margin-top: 20px;">
+  <button id="print-button" onclick="window.print()" class="btn btn-primary">Print Order</button>
+</div>
+
+<script>
+  document.getElementById('print-button').addEventListener('click', function () {
+    if (confirm("Make sure the printer is connected. Do you want to continue printing?")) {
+      window.print();
+    } else {
+      alert("Printing canceled. Please connect your printer.");
+    }
+  });
+</script>
+
+{% endblock %}

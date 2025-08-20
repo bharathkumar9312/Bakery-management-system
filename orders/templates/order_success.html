@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 text-center">
+  <h3>Order Placed Successfully!</h3>
+  <a href="{% url 'create_order' %}" class="btn btn-primary mt-3">Create Another Order</a>
+</div>
+{% endblock %}

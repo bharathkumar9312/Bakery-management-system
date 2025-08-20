@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+  /* Print Styling */
+  @media print {
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #fff;
+    }
+    #print-button {
+      display: none; /* Hide the Print button */
+    }
+   
+    #bill {
+      box-shadow: none;
+      border: none;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+    }
+    table, th, td {
+      border: 1px solid #000;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+    }
+  }
+</style>
+
+<div id="bill" style="max-width: 800px; margin: auto; padding: 20px; border: 1px solid #ddd; background: #fff;">
+  
+  <!-- Header -->
+  <div style="text-align: center; margin-bottom: 20px;">
+    <img src="{% static 'images/logo.png' %}" alt="Shop Logo" style="max-height: 100px;">
+    <h1 style="margin-top: 10px;">Your Shop Name</h1>
+    <p>{{ invoice.date|date:"d M Y" }} | {{ invoice.date|time:"H:i:s" }}</p>
+  </div>
+
+  
+  <div style="margin-bottom: 20px;">
+    <strong>Address:</strong>1/3, Rettai Vaikkal, UTK Malai, Allithurai, Trichy.<br>
+    <strong>Phone Number:</strong>+91-86105 79650
+  </div>
+
+
+  <!-- Product Table -->
+  
+  <table class="table table-bordered" style="width: 100%; margin-bottom: 20px;">
+    <thead style="background-color: #f8f8f8;">
+      <tr>
+        <th style="text-align: center;">S.No</th>
+        <th style="text-align: left;">Product</th>
+        <th style="text-align: center;">Quantity</th>
+        <th style="text-align: right;">Price</th>
+        <th style="text-align: right;">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td style="text-align: center;">{{ forloop.counter }}</td> <!-- S.No using forloop.counter -->
+       <td>
+  {{ item.product.name }}
+  {% if item.size_name and item.size_name != "Standard" %}
+    ({{ item.size_name }})
+  {% endif %}
+</td>
+        <td style="text-align: center;">{{ item.quantity }}</td>
+        <td style="text-align: right;">₹{{ item.price }}</td>
+        <td style="text-align: right;">₹{{ item.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Bill Summary -->
+  <div style="text-align: right;">
+    <p><strong>Total Amount:</strong> ₹{{ invoice.total_amount }}</p>
+    <p><strong>Payment Method:</strong> {{ invoice.payment_method }}</p>
+    <p><strong>Given Amount:</strong> ₹{{ given_amount }}</p>
+    <p><strong>Balance Return:</strong> ₹{{ balance_return }}</p>
+  </div>
+
+  <!-- Thank You -->
+  <div style="text-align: center; margin-top: 40px;">
+    <p>Thank you for shopping with us!</p>
+  </div>
+
+</div>
+
+<!-- Print Button -->
+<div style="text-align: center; margin-top: 20px;">
+  <button id="print-button" onclick="window.print()" class="btn btn-primary">Print Invoice</button>
+</div>
+
+<script>
+  document.getElementById('print-button').addEventListener('click', function () {
+    if (confirm("Make sure the printer is connected. Do you want to continue printing?")) {
+      window.print();
+    } else {
+      alert("Printing canceled. Please connect your printer.");
+    }
+  });
+</script>
+{% endblock %}

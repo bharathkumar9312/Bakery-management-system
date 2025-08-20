@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Customers List{% endblock %}
+
+{% block content %}
+<h2>Customers List</h2>
+<a href="{% url 'customers_create' %}">Add Customers</a>
+<ul>
+    {% for customer in customers %}
+    <li>
+        <strong>{{ customer.name }}</strong>
+        <strong>{{ customer.Phone_number }}</strong>
+        <strong>{{ customer.Address }}</strong>
+        <a href="{% url 'customers_delete' customer.id %}">Delete</a>
+    </li>
+    {% endfor %}
+    </ul>
+    {% endblock %}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Sales Summary - {{ shop_name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; padding: 0; background-color: #f8f9fa; color: #343a40; line-height: 1.6; }
+        .email-card {
+            max-width: 450px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            padding: 25px;
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 22px;
+            color: #007bff; /* Primary color */
+            margin: 0;
+        }
+        .content p {
+            font-size: 18px; /* Larger font for key info */
+            margin: 12px 0;
+        }
+        .content strong {
+            color: #28a745; /* Success color for amount */
+        }
+        .no-sales p {
+            font-size: 17px;
+            color: #dc3545; /* Danger color for no sales */
+            font-style: italic;
+            text-align: center;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d; /* Muted color */
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-card">
+        <div class="header">
+            <h1>{{ shop_name }}</h1>
+        </div>
+
+        <div class="content">
+            <p>Date: {{ report_date|date:"F d, Y" }} ({{ report_date|date:"d-m-Y" }})</p>
+            {% if has_sales %}
+                <p>Total Amount for {{ report_date|date:"F d, Y" }}: <strong>Rs. {{ overall_total_amount|floatformat:2 }}</strong></p>
+            {% else %}
+                <div class="no-sales">
+                    <p>No sales recorded for {{ report_date|date:"F d, Y" }}.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>This is an automated daily summary.</p>
+        </div>
+    </div>
+</body>
+</html>

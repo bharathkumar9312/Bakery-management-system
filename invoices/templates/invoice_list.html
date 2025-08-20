@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-5">
+  <h2>All Bills</h2>
+  <form method="GET" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <label for="from_date" class="form-label">From Date</label>
+      <input type="date" name="from_date" id="from_date" class="form-control" value="{{ request.GET.from_date }}">
+    </div>
+    <div class="col-md-3">
+      <label for="to_date" class="form-label">To Date</label>
+      <input type="date" name="to_date" id="to_date" class="form-control" value="{{ request.GET.to_date }}">
+    </div>
+    <div class="col-md-3">
+      <label for="phone" class="form-label">Phone Number</label>
+      <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter phone number" value="{{ request.GET.phone }}">
+    </div>
+    
+    <div class="col-md-12">
+      <button type="submit" class="btn btn-success mt-2">Search</button>
+      <a href="{% url 'invoice_list' %}" class="btn btn-secondary mt-2">Reset</a>
+    </div>
+  </form>
+  
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>S.No</th>
+        <th>Bill No</th>
+        <th>Customer Name</th>
+        <th>Customer Phone Number</th>
+        <th>Date & Time</th>
+        <th>Grand Total (₹)</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for invoice in invoices %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ invoice.id }}</td>
+        <td>
+          {% if invoice.customer %}
+            {{ invoice.customer.name }}
+          {% else %}
+            Walk-in Customer
+          {% endif %}
+        </td>
+        <td>
+            {% if invoice.customer %}
+              {{ invoice.customer.Phone_number }}
+            {% else %}
+              Walk-in Customer
+            {% endif %}
+          </td>
+        <td>{{ invoice.date|date:"d M Y" }} {{ invoice.date|time:"H:i" }}</td>
+        <td>{{ invoice.grand_total }}</td>
+        <td>
+          <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-sm btn-primary">View Bill</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center">No invoices found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

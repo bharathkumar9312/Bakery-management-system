@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-5">
+  <h2>All Orders</h2>
+  <form method="GET" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <label for="from_date" class="form-label">From Date</label>
+      <input type="date" name="from_date" id="from_date" class="form-control" value="{{ request.GET.from_date }}">
+    </div>
+    <div class="col-md-3">
+      <label for="to_date" class="form-label">To Date</label>
+      <input type="date" name="to_date" id="to_date" class="form-control" value="{{ request.GET.to_date }}">
+    </div>
+    <div class="col-md-3">
+      <label for="phone" class="form-label">Phone Number</label>
+      <input type="text" name="phone" id="phone" class="form-control" value="{{ request.GET.phone }}">
+    </div>
+    <div class="col-md-3">
+      <label for="order_id" class="form-label">Order ID</label>
+      <input type="number" name="order_id" id="order_id" class="form-control" value="{{ request.GET.order_id }}" placeholder="Search by Order ID">
+    </div>
+    <div class="col-md-12">
+      <button type="submit" class="btn btn-success mt-2">Search</button>
+      <a href="{% url 'order_list' %}" class="btn btn-secondary mt-2">Reset</a>
+    </div>
+  </form>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>S.No</th>
+        <th>Order ID</th>
+        <th>Customer Name</th>
+        <th>Phone</th>
+        <th>Order Date & Time</th>
+        <th>Delivery Date & Time</th>
+        <th>Total (₹)</th>
+        <th>Advance Paid</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ order.id }}</td>
+        <td>
+          {% if order.customer %}
+            {{ order.customer.name }}
+          {% else %}
+            Walk-in Customer
+          {% endif %}
+        </td>
+        <td>
+          {% if order.customer %}
+            {{ order.customer.Phone_number }}
+          {% else %}
+            N/A
+          {% endif %}
+        </td>
+        <td>{{ order.date|date:"d M Y" }} {{ order.date|time:"h:i A" }}</td>
+        <td>
+          {% if order.delivery_datetime %}
+            {{ order.delivery_datetime|date:"d M Y" }} {{ order.delivery_datetime|time:"h:i A" }}
+          {% else %}
+            N/A
+          {% endif %}
+        </td>
+        <td>{{ order.total_amount }}</td>
+        <td>{{ order.advance_amount }}</td>
+        <td>
+          <a href="{% url 'order_receipt' order.id %}" class="btn btn-sm btn-primary">View Receipt</a>
+          <button class="btn btn-sm {% if order.status %}btn-success{% else %}btn-warning{% endif %} toggle-delivery-btn"
+        data-order-id="{{ order.id }}"
+        data-order-status="{{ order.status }}">
+    {% if order.status %}
+        Delivered
+    {% else %}
+        Mark Delivered
+    {% endif %}
+</button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="9" class="text-center">No orders found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Delivery Confirmation Modal -->
+<div class="modal fade" id="deliveryModal" tabindex="-1" aria-labelledby="deliveryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deliveryModalLabel">Mark as Delivered</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modal-order-id">
+        
+        <div class="mb-3">
+          <label class="form-label">Total Amount (₹)</label>
+          <input type="text" id="modal-total-amount" class="form-control" readonly>
+        </div>
+      
+        <div class="mb-3">
+          <label class="form-label">Advance Paid (₹)</label>
+          <input type="text" id="modal-advance-amount" class="form-control" readonly>
+        </div>
+      
+        <div class="mb-3">
+          <label class="form-label">Remaining Balance (₹)</label>
+          <input type="text" id="remaining-balance" class="form-control" readonly>
+        </div>
+
+        <div class="mb-3">
+          <label for="amount-received" class="form-label">Amount Received (₹)</label>
+          <input type="number" id="amount-received" class="form-control" min="0">
+          <div id="amount-error" class="text-danger small mt-1" style="display: none;"></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Extra Amount (₹)</label>
+          <input type="text" id="extra-amount" class="form-control" readonly>
+          <div id="extra-amount-info" class="text-success small mt-1" style="display: none;"></div>
+        </div>
+      
+        
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="confirm-delivery-btn" disabled>
+          Confirm Delivery
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = new bootstrap.Modal(document.getElementById("deliveryModal"));
+  
+  // Initialize order data map
+  const orderDataMap = {};
+  {% if orders %}
+    {% for order in orders %}
+      orderDataMap["{{ order.id }}"] = {
+        total: {{ order.total_amount }},
+        advance: {{ order.advance_amount }}
+      };
+    {% endfor %}
+  {% endif %}
+
+  // Set up delivery button click handlers
+  document.querySelectorAll(".toggle-delivery-btn").forEach(btn => {
+    btn.addEventListener("click", function() {
+      const orderId = this.getAttribute("data-order-id");
+      const orderStatus = this.getAttribute("data-order-status") === "True";
+      
+
+      if (orderStatus) {
+            return;
+        }
+       
+      const order = orderDataMap[orderId];  
+
+      if (!order) {
+        alert("Order data not found");
+        return;
+      }
+
+      document.getElementById("modal-order-id").value = orderId;
+      document.getElementById("modal-total-amount").value = order.total.toFixed(2);
+      document.getElementById("modal-advance-amount").value = order.advance.toFixed(2);
+      
+      // Calculate and show remaining balance
+      const remainingBalance = order.total - order.advance;
+      document.getElementById("remaining-balance").value = remainingBalance.toFixed(2);
+      
+      // Reset form fields
+      document.getElementById("amount-received").value = "";
+      document.getElementById("extra-amount").value = "0.00";
+     
+      document.getElementById("amount-error").style.display = "none";
+      document.getElementById("extra-amount-info").style.display = "none";
+      document.getElementById("confirm-delivery-btn").disabled = true;
+      
+      modal.show();
+    });
+  });
+
+  // Amount received validation
+  document.getElementById("amount-received").addEventListener("input", function() {
+    const amountReceived = parseFloat(this.value) || 0;
+    const errorElement = document.getElementById("amount-error");
+    const extraAmountElement = document.getElementById("extra-amount");
+    const extraInfoElement = document.getElementById("extra-amount-info");
+
+    // Hide messages initially
+    errorElement.style.display = "none";
+    extraInfoElement.style.display = "none";
+
+    const total = parseFloat(document.getElementById("modal-total-amount").value);
+    const advance = parseFloat(document.getElementById("modal-advance-amount").value);
+    const remainingBalance = total - advance;
+    
+    if (isNaN(amountReceived)) {
+      document.getElementById("confirm-delivery-btn").disabled = true;
+      errorElement.textContent = "Please enter a valid number";
+      errorElement.style.display = "block";
+      extraAmountElement.value = "0.00";
+      return;
+    }
+
+    const extraAmount = amountReceived - remainingBalance;
+    
+    // Update extra amount field
+    extraAmountElement.value = extraAmount > 0 ? extraAmount.toFixed(2) : "0.00";
+    
+    if (amountReceived >= remainingBalance) {
+      // Customer paid enough (including possible extra)
+      document.getElementById("confirm-delivery-btn").disabled = false;
+      
+      if (extraAmount > 0) {
+        extraInfoElement.textContent = `Customer paid ₹${extraAmount.toFixed(2)} extra (Total received: ₹${(advance + amountReceived).toFixed(2)})`;
+        extraInfoElement.style.display = "block";
+      }
+    } else {
+      // Customer didn't pay enough
+      document.getElementById("confirm-delivery-btn").disabled = true;
+      errorElement.textContent = `Amount received is insufficient. Still needs: ₹${Math.abs(extraAmount).toFixed(2)}`;
+      errorElement.style.display = "block";
+    }
+  });
+
+  // Handle confirm delivery
+document.getElementById("confirm-delivery-btn").addEventListener("click", function() {
+    const btn = this;
+    const orderId = document.getElementById("modal-order-id").value;
+    const amountReceived = parseFloat(document.getElementById("amount-received").value) || 0;
+    const extraAmount = parseFloat(document.getElementById("extra-amount").value) || 0;
+
+    // Disable button and show loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Make API request
+    fetch(`/orders/toggle-delivery/${orderId}/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: JSON.stringify({ 
+            amount_received: amountReceived.toFixed(2),
+            extra_amount: extraAmount > 0 ? extraAmount.toFixed(2) : "0.00"
+        }),
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            modal.hide();
+            if (data.invoice_id) {
+                // Redirect to the invoice page
+                window.location.href = `/invoices/${data.invoice_id}/`;
+            } else {
+                location.reload();
+            }
+        } else {
+            throw new Error(data.error || "Failed to update delivery status");
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("An error occurred: " + error.message);
+        btn.disabled = false;
+        btn.innerHTML = 'Confirm Delivery';
+    });
+});
+});
+</script>
+
+{% endblock %}

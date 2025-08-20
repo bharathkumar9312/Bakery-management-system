@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-5">
+  <!-- {# Display Django Messages (like success/error from email sending) #}
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {# Display error messages specific to date parsing in this view if any #}
+  {% if error_message %}
+    <div class="alert alert-danger" role="alert">
+        {{ error_message }}
+    </div>
+  {% endif %} -->
+
+  {# 1. "Send Today's Report to Owner" Button #}
+  <div class="my-3">
+    <form method="POST" action="{% url 'send_owner_email_report_url' %}" onsubmit="return confirm('Are you sure you want to send today\'s sales report to the owner?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-info">
+            <i class="bi bi-envelope-fill"></i> Send Today's Report to Owner
+        </button>
+    </form>
+  </div>
+  <hr>
+
+  {# 2. "View Detailed Report" Filter Section #}
+  <h4>View Detailed Report</h4>
+  <form method="GET" class="row row-cols-lg-auto g-3 align-items-center mb-4">
+    <div class="col-12">
+      <label for="date" class="visually-hidden">Select Date</label>
+      <div class="input-group">
+        <div class="input-group-text"><i class="bi bi-calendar3"></i></div> {# Bootstrap icon for calendar #}
+        <input type="date" name="date" id="date" class="form-control" value="{{ selected_date }}" required placeholder="dd-mm-yyyy">
+      </div>
+    </div>
+  
+    <div class="col-12">
+      <label for="filter" class="visually-hidden">Select Report Type</label>
+      <select name="filter" id="filter" class="form-select">
+        <option value="daily" {% if filter_by == "daily" %}selected{% endif %}>Daily</option>
+        <option value="weekly" {% if filter_by == "weekly" %}selected{% endif %}>Weekly</option>
+        <option value="monthly" {% if filter_by == "monthly" %}selected{% endif %}>Monthly</option>
+        <option value="yearly" {% if filter_by == "yearly" %}selected{% endif %}>Yearly</option>
+      </select>
+    </div>
+  
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">View Report</button>
+    </div>
+  </form>
+  <hr> {# Added a horizontal rule for better visual separation #}
+
+  {# 3. "Today's Sales Summary" Section #}
+  <h4>Today's Sales Summary ({{ todays_date_display }})</h4>
+  {% if has_todays_sales %}
+      <p><strong>Total Sales Today: ₹{{ todays_total_sales }}</strong></p>
+      {% if todays_product_sales %}
+          <table  class="table table-striped mt-3">
+              <caption>Today's Product Breakdown</caption>
+              <thead class="table-light">
+                  <tr>
+                      <th>Product Name</th>
+                      <th>Size/Weight</th>
+                      <th>Qty Sold</th>
+                      <th>Value (₹)</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for item in todays_product_sales %}
+                  <tr>
+                      <td>{{ item.product__name }}</td>
+                      <td>{{ item.size_name|default:"N/A" }}</td>
+                      <td>{{ item.total_quantity }}</td>
+                      <td>{{ item.total_value }}</td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      {% else %}
+          <p>No specific product breakdown available for today.</p>
+      {% endif %}
+  {% else %}
+      <p>No sales recorded yet for today ({{ todays_date_display }}).</p>
+  {% endif %}
+  <hr>
+
+  {# 4. Download Buttons for the Detailed Report (PDF/Excel) #}
+  {# These appear only after a detailed report is generated via the filter above #}
+  {% if selected_date and invoices %}
+    <div class="mb-3">
+        <a href="?date={{ selected_date }}&filter={{ filter_by }}&export_pdf=true" class="btn btn-danger" target="_blank">
+            <i class="bi bi-file-earmark-pdf-fill"></i> Download Detailed Report PDF
+        </a>
+        <a href="?date={{ selected_date }}&filter={{ filter_by }}&export_xls=true" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel-fill"></i> Download Detailed Report Excel
+        </a>
+    </div>
+  {% elif selected_date and not invoices and not error_message %}
+     {# This case is handled by "No sales data found..." for the detailed report section #}
+  {% endif %}
+
+
+  {# 5. Detailed Report for the Selected Period #}
+  {% if selected_date %} {# This whole block shows if a date was selected for the detailed report #}
+    <h5>Report for: {{ report_period_display }}</h5>
+    {% if invoices %}
+      <p>Total Amount for this period: ₹{{ total_amount }}</p>
+    {% elif not error_message %} {# Don't show this if there's an error message like invalid date for the selected period #}
+      <p>No sales data found for {{ report_period_display }}</p>
+    {% endif %}
+  
+    {# Table for Detailed Invoices of the Selected Period #}
+    {% if invoices %}
+        <div class="table-responsive">
+        <table class="table table-striped mt-3">
+            <caption>Detailed Invoices for {{ report_period_display }}</caption>
+            <thead>
+            <tr>
+                <th>S.No</th>
+                <th>Bill No</th>
+                <th>Customer Name</th>
+                <th>Customer Phone Number</th>
+                <th>Date & Time</th>
+                <th>Grand Total (₹)</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for invoice in invoices %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ invoice.id }}</td>
+                <td>
+                {% if invoice.customer %}
+                    {{ invoice.customer.name }}
+                {% else %}
+                    Walk-in Customer
+                {% endif %}
+                </td>
+                <td>
+                {% if invoice.customer %}
+                    {{ invoice.customer.Phone_number }}
+                {% else %}
+                    Walk-in Customer
+                {% endif %}
+                </td>
+                <td>{{ invoice.date|date:"d M Y" }} {{ invoice.date|time:"H:i" }}</td>
+                <td>{{ invoice.grand_total }}</td>
+                <td>
+                <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-sm btn-primary">View Bill</a>
+                </td>
+            </tr>
+            {% empty %}
+                {# This 'empty' is for the 'invoices' loop, so it's covered by the outer 'if invoices' #}
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    {% endif %}
+
+    {# Product Sales Summary for the SELECTED Period #}
+    {% if product_sales %}
+    <h4 class="mt-5">Product Sales Summary for {{ report_period_display }}</h4>
+    <div class="table-responsive">
+        <table class="table table-bordered mt-3">
+        <thead>
+            <tr>
+            <th>Product Name</th>
+            <th>Size/Weight</th>
+            <th>Total Quantity Sold</th>
+            <th>Total Value (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in product_sales %}
+            <tr>
+            <td>{{ product.product__name }}</td>
+            <td>{{ product.size_name|default:"N/A" }}</td>
+            <td>{{ product.total_quantity }}</td>
+            <td>{{ product.total_value }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </div>
+    {% else %}
+      {% if invoices and not error_message %} {# Show only if invoices exist for the period but no specific product sales #}
+        <p class="mt-4">No product sales data found for the selected period: {{ report_period_display }}.</p>
+      {% endif %}
+    {% endif %}
+
+  {% elif not error_message %} {# If no date selected for detailed report and no general error_message (like invalid date format) #}
+      <p class="mt-4 text-center">Please select a date and report type to view a detailed report.</p>
+  {% endif %}
+
+</div>
+
+{% endblock %}

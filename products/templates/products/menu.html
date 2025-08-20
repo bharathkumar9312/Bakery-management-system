@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Menu - Cake Bro{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 text-center">Our Menu</h2>
+<div class="row">
+  {% for product in products %}
+  <div class="col-md-3 mb-4">
+    <div class="card h-100 shadow-sm">
+      <img src="{{ product.product_image.url }}" class="card-img-top preview-img" data-bs-toggle="modal" data-bs-target="#productModal{{ product.id }}" style="height: 200px; object-fit: cover;" alt="{{ product.name }}">
+      <div class="card-body text-center">
+        <h5 class="card-title">{{ product.name }}</h5>
+        <p class="card-text text-success fw-bold">₹{{ product.selling_price }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for product details -->
+  <div class="modal fade" id="productModal{{ product.id }}" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ product.name }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img src="{{ product.product_image.url }}" class="img-fluid mb-3" style="max-height: 300px;">
+          
+          <div class="d-flex justify-content-between mb-3">
+            <p><strong>Old Price:</strong> <s>₹{{ product.original_price | stringformat:'d' }}</s></p>
+            <p class="text-success"><strong>Offer Price:</strong> ₹{{ product.selling_price | stringformat:'d' }}</p>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

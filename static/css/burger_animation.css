@@ -1,0 +1,109 @@
+/* static/css/burger_animation.css */
+
+/* Layout for Burger Section and Description */
+.burger-feature-section {
+    display: flex;
+    align-items: center;
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+.burger-animation-column {
+    flex: 1;
+    padding-right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.burger-description-column {
+    flex: 1;
+    padding-left: 20px;
+}
+
+.burger-description-text h3 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.burger-description-text p {
+    color: #555;
+    line-height: 1.6;
+    font-size: 1.05rem;
+}
+
+/* Burger Animation Specific Styles */
+.burger-show-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.burger-animation-area {
+    position: relative;
+    width: 150px; /* Adjust based on your image widths if needed */
+    height: 250px; /* Adjust this based on the final height of your assembled burger.
+                      (Max 'bottom' value + height of top bun image) */
+    margin: 0px auto 30px auto;
+    
+    overflow: visible; /* Allows parts of the animation (like initial translateY) to be outside */
+}
+
+/* Common burger layer style */
+.burger-layer {
+    position: absolute;
+    left: 0;
+    width: 100%; /* Layers will take the full width of .burger-animation-area */
+    height: auto;  /* To maintain image aspect ratio */
+    opacity: 0;    /* Initially all layers are hidden */
+    
+    /* Common transition for all layers */
+    transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+
+    /* All layers (including top bun) start offset from their final position */
+    /* The 'bottom' property will be set per-layer below */
+    transform: translateY(60px); /* Initial state: 70px below their final 'bottom' position */
+                                 /* Increase this value for a longer animation travel distance */
+}
+
+/* 
+   Final stack positions and z-index for each layer.
+   The 'bottom' property defines the final vertical position of each layer's bottom edge
+   relative to the .burger-animation-area.
+*/
+#bottom-bun {
+    z-index: 1;
+    bottom: 0px;
+}
+
+#patty {
+    z-index: 2;
+    bottom: 15px; /* Patty will sit 50px from the bottom of the container */
+}
+
+#cheese {
+    z-index: 3;
+    bottom: 30px; /* Cheese will sit 100px from the bottom */
+}
+
+#lettuce {
+    z-index: 4;
+    bottom: 45px; /* Lettuce will sit 150px from the bottom */
+}
+
+#tomato {
+    z-index: 5;
+    bottom: 60px; /* Tomato will sit 200px from the bottom */
+}
+
+#top-bun {
+    z-index: 6;    /* Highest z-index, appears on top */
+    bottom: 100px; /* Top bun will sit 250px from the bottom */
+}
+
+/* 
+   When JavaScript adds the '.visible' class, layers animate to this state.
+*/
+.burger-layer.visible {
+    opacity: 1;                 /* Fade in */
+    transform: translateY(0);   /* Move to their defined 'bottom' position (no Y-axis offset) */
+}

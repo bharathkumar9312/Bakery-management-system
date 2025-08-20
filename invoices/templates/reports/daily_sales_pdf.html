@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sales Report</title>
+    <style>
+        @page {
+            size: a4 portrait; /* landscape or portrait */
+            margin: 1.5cm; /* Margins for the PDF page */
+        }
+        body {
+            font-family: "Helvetica", "Arial", sans-serif; /* Common fonts that xhtml2pdf supports well */
+            font-size: 10pt;
+            color: #333;
+        }
+        h2, h4, h5 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #000;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #666;
+            padding: 6px;
+            text-align: left;
+            word-wrap: break-word; /* To prevent text overflow */
+        }
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .total-summary {
+            font-size: 12pt;
+            font-weight: bold;
+            text-align: right;
+            margin-bottom: 15px;
+            padding-right: 10px;
+        }
+        .no-data {
+            text-align: center;
+            font-style: italic;
+            color: #777;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Daily Sales Report ({{ filter_by|capfirst }})</h2>
+    {% if report_period_display %}
+        <h5>Period: {{ report_period_display }}</h5>
+    {% endif %}
+
+    {% if selected_date %}
+        {% if invoices %}
+            <div class="total-summary">Total Sales Amount for {{ report_period_display }}: ₹{{ total_amount }}</div>
+        {% else %}
+            <p class="no-data">No sales data found for {{ report_period_display }}</p>
+        {% endif %}
+    {% endif %}
+
+    {% if invoices %}
+        <h4>Invoice Details</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Bill No</th>
+                    <th>Customer Name</th>
+                    <th>Customer Phone</th>
+                    <th>Date & Time</th>
+                    <th>Grand Total (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ invoice.id }}</td>
+                    <td>
+                        {% if invoice.customer %}
+                            {{ invoice.customer.name }}
+                        {% else %}
+                            Walk-in Customer
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if invoice.customer %}
+                            {{ invoice.customer.Phone_number }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ invoice.date|date:"d M Y" }} {{ invoice.date|time:"H:i" }}</td>
+                    <td>{{ invoice.grand_total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        {% if selected_date %}
+            <!-- Message already shown above if no invoices for selected date -->
+        {% else %}
+            <p class="no-data">Please select a date to view the report.</p>
+        {% endif %}
+    {% endif %}
+
+    {% if product_sales %}
+        <h4>Product Sales Summary</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Total Quantity Sold</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in product_sales %}
+                <tr>
+                    <td>{{ product.product__name }}</td>
+                    <td>{{ product.total_quantity }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        {% if selected_date and invoices %} {# Show only if invoices exist but no product sales (e.g., if table is empty) #}
+             <p class="no-data">No product sales data found for the selected period.</p>
+        {% endif %}
+    {% endif %}
+</body>
+</html>

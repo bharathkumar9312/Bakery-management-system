@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home | Cake Bro{% endblock %}
+
+{% block head_extra %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/burger_animation.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="text-center py-4"> <!-- Main welcome heading -->
+    <h1 class="display-4 fw-bold">Welcome to Cake Bro </h1>
+    <p class="lead text-muted">"One Stop for Every Craving — Burgers, Bakes & Beyond!"</p>
+    <a href="{% url 'menu' %}" class="btn btn-danger mt-3">Explore Menu</a>
+</div>
+
+<hr class="my-4"> <!-- Optional separator -->
+
+<div class="container mt-4 mb-5">
+    <div class="row align-items-center">
+        
+        <!-- Left Column: Burger Animation -->
+        <div class="col-lg-6 col-md-12 order-lg-1 order-md-2 mt-4 mt-lg-0">
+            <div class="burger-show-container">
+                <h2 class="text-center">Our Special Animated Burger!</h2>
+                <div class="burger-animation-area">
+                    <img src="{% static 'images/Bun-bottom.png' %}" alt="Bottom Bun" class="burger-layer" id="bottom-bun">
+                    <img src="{% static 'images/patty.png' %}" alt="Patty" class="burger-layer" id="patty">
+                    <img src="{% static 'images/cheese.png' %}" alt="Cheese" class="burger-layer" id="cheese">
+                    <img src="{% static 'images/lettuce.png' %}" alt="Lettuce" class="burger-layer" id="lettuce">
+                    <img src="{% static 'images/tomato.png' %}" alt="Tomato" class="burger-layer" id="tomato">
+                    <img src="{% static 'images/Bun-top.png' %}" alt="Top Bun" class="burger-layer" id="top-bun">
+                </div>
+                
+            </div>
+        </div>
+        
+        <!-- Right Column: Burger Description -->
+        <div class="col-lg-6 col-md-12 order-lg-2 order-md-1">
+            <div class="burger-description-text ps-lg-3"> 
+                <h3 class="fw-bold" style="color: #d9534f;">The "Cake Bro" Signature</h3>
+                <p>Indulge in our masterpiece! Featuring a perfectly grilled, juicy patty, layered with garden-fresh crisp lettuce, ripe tomato slices, and premium quality melted cheese.</p>
+                <p>All lovingly embraced by our specially baked, soft sesame seed buns. It’s more than just a burger – it's an unforgettable experience!</p>
+                <p>Taste the passion in every bite. Your ultimate craving satisfaction starts here at Cake Bro!</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+    {{ block.super }}
+    <script src="{% static 'js/burger_animation.js' %}"></script>
+{% endblock %}

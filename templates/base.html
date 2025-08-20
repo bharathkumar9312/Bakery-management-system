@@ -1,0 +1,167 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Bakery{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    {% block head_extra %}
+    {# Burger animation CSS #}
+    {% endblock head_extra %}
+</head>
+<body style="background-color: #fda172;">
+<nav class="navbar navbar-expand-lg navbar-light  shadow-sm sticky-top" style="background-color: #fc6a03;">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="{% url 'home' %}">
+      <!-- <img src="{% static 'images/logo.png' %}" alt="Logo" style="height: 40px;"> -->
+      Cake Bro
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'menu' %}">Menu</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'category_list' %}">Our Categories</a></li>
+        <!-- <li class="nav-item"><a class="nav-link" href="{% url 'customers_list' %}">Our Customers</a></li> -->
+        <li class="nav-item"><a class="nav-link" href="{% url 'product_list' %}">Our Products</a></li>
+         <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle " href="#" id="orderDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Order
+          </a>
+          <ul class=" dropdown-menu dropdown-menu-end " aria-labelledby="orderDropdown" style=" color: #fc6a03;background-color: #fda172;";  >
+            <li><a class=" nav-link dropdown-item  dropdown-hover" href="{% url 'create_order' %}">Order</a></li>
+            <li><a class="nav-link  dropdown-item  dropdown-hover" href="{% url 'order_list' %}">Order List</a></li>
+          </ul>
+        </li>
+        
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle " href="#" id="billDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Bill
+          </a>
+          <ul class=" dropdown-menu dropdown-menu-end " aria-labelledby="billDropdown" style=" color: #fc6a03;background-color: #fda172;";  >
+            <li><a class=" nav-link dropdown-item  dropdown-hover" href="{% url 'create_invoice' %}">Create Bill</a></li>
+            <li><a class="nav-link  dropdown-item  dropdown-hover" href="{% url 'invoice_list' %}">Bill List</a></li>
+          </ul>
+        </li>
+        
+        <li class="nav-item"><a class="nav-link" href="{% url 'daily_sales_report' %}">Sales Report</a></li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+    {% block content %}{% endblock %}
+</div>
+
+<script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<!-- for category-list table -->
+<script>
+  // Image preview modal
+  
+  document.addEventListener("DOMContentLoaded", function () {
+    const categoryImgs = document.querySelectorAll("#categoryTable .preview-img"); // More specific selector
+    const modalImg = document.getElementById("modalImage"); // Ensure this modal is present or only run if exists
+
+    if (modalImg) { // Only run if modal exists
+        categoryImgs.forEach(img => {
+            img.addEventListener("click", () => {
+                modalImg.src = img.getAttribute("data-img");
+            });
+        });
+    }
+
+    const categorySearchInput = document.getElementById("categorySearchInput"); // Use a more specific ID
+    if (categorySearchInput) {
+        categorySearchInput.addEventListener("keyup", function () {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll("#categoryTable tbody tr");
+
+            rows.forEach(row => {
+                const name = row.querySelector("td:nth-child(2)").innerText.toLowerCase();
+                row.style.display = name.includes(filter) ? "" : "none";
+            });
+        });
+    }
+  });
+
+  // Table sort (simple version for 2nd column)
+  function sortCategoryTable(colIndex) { // Rename function
+    const table = document.getElementById("categoryTable");
+    if (!table) return; // Exit if table not found
+
+    const rows = Array.from(table.rows).slice(1);
+    const ascending = table.getAttribute("data-sort") !== "asc";
+
+    rows.sort((a, b) => {
+      const cellA = a.cells[colIndex].innerText.toLowerCase();
+      const cellB = b.cells[colIndex].innerText.toLowerCase();
+      return ascending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+
+    rows.forEach(row => table.tBodies[0].appendChild(row));
+    table.setAttribute("data-sort", ascending ? "asc" : "desc");
+  }
+</script>
+<!-- for product-list table -->
+<script>
+  // Image preview modal
+  
+  document.addEventListener("DOMContentLoaded", function () {
+    const productImgs = document.querySelectorAll("#productTable .preview-img"); // More specific selector
+    const modalImg = document.getElementById("modalImage"); // Re-ensure modal exists or handle
+
+    if (modalImg) {
+        productImgs.forEach(img => {
+            img.addEventListener("click", () => {
+                modalImg.src = img.getAttribute("data-img");
+            });
+        });
+    }
+
+    // Search functionality for products
+    const productSearchInput = document.getElementById("productSearchInput"); // Use a more specific ID
+    if (productSearchInput) {
+        productSearchInput.addEventListener("keyup", function () {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll("#productTable tbody tr");
+
+            rows.forEach(row => {
+                const name = row.querySelector("td:nth-child(2)").innerText.toLowerCase();
+                row.style.display = name.includes(filter) ? "" : "none";
+            });
+        });
+    }
+  });
+
+  // Table sort (simple version for 2nd column - product name)
+ 
+  function sortProductTable(colIndex) { // Rename function
+    const table = document.getElementById("productTable");
+    if (!table) return; // Exit if table not found
+
+    const rows = Array.from(table.rows).slice(1);
+    const ascending = table.getAttribute("data-sort") !== "asc";
+
+    rows.sort((a, b) => {
+      const cellA = a.cells[colIndex].innerText.toLowerCase();
+      const cellB = b.cells[colIndex].innerText.toLowerCase();
+      return ascending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+
+    rows.forEach(row => table.tBodies[0].appendChild(row));
+    table.setAttribute("data-sort", ascending ? "asc" : "desc");
+  }
+</script>
+
+{% block scripts_extra %}
+{# Burger animation JS #}
+{% endblock scripts_extra %}
+
+</body>
+</html>

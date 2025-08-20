@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+{% load static %} {# For static files if you use them for CSS/JS later #}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Create New Invoice</h2>
+
+  <form method="post" id="invoiceForm" autocomplete="off">
+    {% csrf_token %}
+
+    <!-- Customer Section -->
+    <div class="card mb-4">
+      <div class="card-header">Customer Details</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="customerPhone">Customer Phone Number</label>
+          <input type="text" id="customerPhone" name="customer_phone" class="form-control" placeholder="Enter 10-digit number">
+        </div>
+        <div class="mb-3">
+          <label for="customerName">Customer Name</label>
+          <input type="text" id="customerName" name="customer_name" class="form-control" placeholder="Enter customer name">
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Search & General Invoice Fields -->
+    <div class="card mb-4">
+      <div class="card-header">Invoice Details & Product Search</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="productSearch">Search Products</label>
+          <input type="text" id="productSearch" class="form-control" placeholder="Search by product name or category...">
+        </div>
+        <div id="searchResults" class="list-group mb-3" style="max-height: 200px; overflow-y: auto;">
+          <!-- Search results will appear here -->
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="paymentMethod">Payment Method</label>
+            <select class="form-control form-select" name="payment_method" id="paymentMethod" required>
+              <option value="Cash">Cash</option>
+              <option value="GPay">GPay</option>
+              <option value="Card">Card</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="givenAmount">Given Amount (for Cash)</label>
+            <input type="text" name="given_amount" id="givenAmount" class="form-control" inputmode="numeric" pattern="[0-9]*" placeholder="Enter amount given by customer">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected Products -->
+    <div class="card mb-4">
+      <div class="card-header">Selected Products</div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover" id="selectedProductsTable">
+            <thead class="table-light">
+              <tr>
+                <th>Product Name (Size/Weight)</th>
+                <th>Unit Price (₹)</th>
+                <th>Quantity</th>
+                <th>Total (₹)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {# The initial "No products" row is here. JS will replace tbody content. #}
+              <tr id="noProductsRow">
+                <td colspan="5" class="text-center text-muted">No products added yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="text-end me-3 mt-3">
+          <h4>Total Amount: ₹<span id="totalAmount">0.00</span></h4>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mb-5">
+      <button type="submit" class="btn btn-success btn-lg px-5">Generate Bill</button>
+    </div>
+  </form>
+</div>
+
+<!-- Size/Weight Options Modal -->
+<div class="modal fade" id="sizeOptionsModal" tabindex="-1" aria-labelledby="sizeOptionsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sizeOptionsModalLabel">Select Size/Weight for <span id="modalProductName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="sizeButtonsContainer" class="d-grid gap-2">
+          <!-- Buttons or input fields will be injected here by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// All products available (passed from Django template)
+const allProducts = [
+  {% for p in products %}
+  {
+    id: {{ p.id }},
+    name: "{{ p.name|escapejs }}",
+    category_name: "{{ p.category.name|escapejs }}",
+    selling_price: {{ p.selling_price|default_if_none:"null" }},
+    price_half_kg: {{ p.price_half_kg|default_if_none:"null" }},
+    price_one_kg: {{ p.price_one_kg|default_if_none:"null" }},
+    price_small: {{ p.price_small|default_if_none:"null" }},
+    price_medium: {{ p.price_medium|default_if_none:"null" }},
+    price_large: {{ p.price_large|default_if_none:"null" }}
+  },
+  {% endfor %}
+];
+
+let selectedProducts = [];
+const sizeSensitiveCategoryKeywords = ['pizza', 'milkshake', 'cake', 'cakes', 'ice cream']; // Case-insensitive
+let sizeModalInstance; // For Bootstrap 5 modal instance
+
+document.addEventListener('DOMContentLoaded', function() {
+    const sizeOptionsModalElement = document.getElementById('sizeOptionsModal');
+    if (sizeOptionsModalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        sizeModalInstance = new bootstrap.Modal(sizeOptionsModalElement);
+    } else {
+        console.warn('Bootstrap Modal JS not found, or sizeOptionsModalElement missing. Modal functionality might be affected.');
+    }
+
+    document.getElementById('productSearch').addEventListener('input', function() {
+      const query = this.value.toLowerCase();
+      const results = allProducts.filter(p =>
+          p.name.toLowerCase().includes(query) ||
+          (p.category_name && p.category_name.toLowerCase().includes(query))
+      );
+      displaySearchResults(results);
+    });
+
+    document.getElementById('customerPhone').addEventListener('blur', function() {
+      let phone = this.value;
+      if (phone.length >= 10) {
+        fetch(`/customers/api/search/?Phone_number=${phone}`)
+          .then(response => response.ok ? response.json() : Promise.reject(response))
+          .then(data => {
+            if (data.exists && data.name) {
+              document.getElementById('customerName').value = data.name;
+            }
+          })
+          .catch(error => console.error('Error fetching customer:', error));
+      }
+    });
+
+    const invoiceForm = document.getElementById('invoiceForm');
+    const paymentMethodInput = document.getElementById('paymentMethod'); 
+    const givenAmountInput = document.getElementById('givenAmount');
+    const totalAmountSpan = document.getElementById('totalAmount');
+
+    invoiceForm.addEventListener('submit', function (e) {
+      if (selectedProducts.length === 0) {
+        e.preventDefault(); 
+        alert('Please select at least one product before generating the bill.');
+        return; 
+      }
+      if (paymentMethodInput.value === 'Cash') { 
+        const totalAmount = parseFloat(totalAmountSpan.textContent); 
+        const givenAmount = parseFloat(givenAmountInput.value);
+        if (isNaN(givenAmount)) { 
+            e.preventDefault();
+            alert('Please enter a valid "Given Amount".');
+            givenAmountInput.focus();
+            return;
+        }
+        if (givenAmount < totalAmount) {
+          e.preventDefault(); 
+          alert('Given Amount (₹' + givenAmount.toFixed(2) + ') cannot be less than Total Amount (₹' + totalAmount.toFixed(2) + '). Please enter the correct amount.');
+          givenAmountInput.focus(); 
+          return; 
+        }
+      }
+    });
+
+    function toggleGivenAmountField() {
+        if (paymentMethodInput.value === 'Cash') { 
+          givenAmountInput.disabled = false;
+          givenAmountInput.required = true; 
+        } else {
+          givenAmountInput.disabled = true;
+          givenAmountInput.value = '';
+          givenAmountInput.required = false;
+        }
+    }
+    toggleGivenAmountField(); 
+    paymentMethodInput.addEventListener('change', toggleGivenAmountField); 
+    renderSelectedProducts(); 
+});
+
+function displaySearchResults(results) {
+  const searchResults = document.getElementById('searchResults');
+  searchResults.innerHTML = '';
+  if (results.length === 0 && document.getElementById('productSearch').value.trim() !== '') {
+    const noResultItem = document.createElement('div');
+    noResultItem.className = 'list-group-item text-muted';
+    noResultItem.textContent = 'No products found matching your search.';
+    searchResults.appendChild(noResultItem);
+    return;
+  }
+  results.forEach(product => {
+    const item = document.createElement('a');
+    item.href = "#";
+    item.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center";
+    let priceDisplay = "N/A";
+    if (product.selling_price !== null && !isNaN(parseFloat(product.selling_price))) {
+        priceDisplay = `₹${parseFloat(product.selling_price).toFixed(2)}`;
+    }
+    const productCategoryLower = product.category_name ? product.category_name.toLowerCase() : "";
+    const isSizeSensitive = sizeSensitiveCategoryKeywords.some(keyword => productCategoryLower.includes(keyword));
+    if (isSizeSensitive) { priceDisplay = "(Select size/weight)"; }
+    item.innerHTML = `
+        <span>${product.name} (${product.category_name || 'N/A'})</span>
+        <span class="badge bg-primary rounded-pill">${priceDisplay}</span>
+    `;
+    item.onclick = function(e) {
+      e.preventDefault();
+      document.getElementById('productSearch').value = '';
+      searchResults.innerHTML = '';
+      if (isSizeSensitive) {
+        showSizeOptionsModal(product);
+      } else {
+        const price = parseFloat(product.selling_price);
+        if (product.selling_price === null || isNaN(price)) {
+            alert(`Price not available for ${product.name}. Cannot add to bill.`); return;
+        }
+        addProductToSelection(product, price, "Standard");
+      }
+    };
+    searchResults.appendChild(item);
+  });
+}
+
+function showSizeOptionsModal(product) {
+  document.getElementById('modalProductName').textContent = product.name;
+  const container = document.getElementById('sizeButtonsContainer');
+  container.innerHTML = '';
+  let hasOptions = false;
+  const categoryLower = product.category_name ? product.category_name.toLowerCase() : "";
+
+  const addOptionButtonDirect = (sizeName, priceValue, weightForCalc = null) => {
+    const price = parseFloat(priceValue);
+    if (priceValue !== null && !isNaN(price)) {
+      hasOptions = true;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-outline-success mb-2 w-100';
+      btn.textContent = `${sizeName} - ₹${price.toFixed(2)}`;
+      btn.onclick = () => {
+        addProductToSelection(product, price, sizeName, weightForCalc);
+        if (sizeModalInstance) sizeModalInstance.hide();
+      };
+      container.appendChild(btn);
+    }
+  };
+
+  if (categoryLower.includes('cake')) {
+    if (product.price_half_kg !== null) {
+        addOptionButtonDirect("0.5 Kg", product.price_half_kg, 0.5);
+    }
+    if (product.price_one_kg !== null) {
+        addOptionButtonDirect("1 Kg", product.price_one_kg, 1.0);
+    }
+
+    if (product.price_half_kg !== null || product.price_one_kg !== null) { // Add separator if predefined options exist
+        const separator = document.createElement('hr');
+        container.appendChild(separator);
+        const customLabel = document.createElement('p');
+        customLabel.className = 'text-center text-muted mb-1 small';
+        customLabel.textContent = 'Or enter other custom weight:';
+        container.appendChild(customLabel);
+    } else { // If no predefined, main label is for custom
+        const weightLabel = document.createElement('label');
+        weightLabel.htmlFor = 'cakeWeightInput';
+        weightLabel.textContent = 'Enter Weight (kg):';
+        weightLabel.className = 'form-label';
+        container.appendChild(weightLabel);
+    }
+
+    if (product.price_one_kg !== null && !isNaN(parseFloat(product.price_one_kg))) {
+        hasOptions = true; 
+        if (!document.getElementById('cakeWeightInput')) { // Add input only if not added by the label above
+            const weightLabelForCustom = document.createElement('label');
+            weightLabelForCustom.htmlFor = 'cakeWeightInput';
+            weightLabelForCustom.textContent = 'Custom Weight (kg):';
+            weightLabelForCustom.className = 'form-label mt-2'; // Add margin if there was a separator
+            if(!(product.price_half_kg !== null || product.price_one_kg !== null)) container.removeChild(container.lastChild); // remove "Enter Weight" if custom is the only option
+            container.appendChild(weightLabelForCustom);
+        }
+
+
+        const weightInput = document.createElement('input');
+        weightInput.type = 'number';
+        weightInput.id = 'cakeWeightInput'; // Ensure ID is consistent
+        weightInput.className = 'form-control mb-2';
+        weightInput.step = '0.01';
+        weightInput.min = '0.1'; 
+        weightInput.placeholder = 'e.g., 1.25, 1.5, 2';
+        container.appendChild(weightInput);
+
+        const pricePerKgDisplay = document.createElement('p');
+        pricePerKgDisplay.innerHTML = `(Calculated using base price of ₹${parseFloat(product.price_one_kg).toFixed(2)} per 1 Kg)`;
+        pricePerKgDisplay.className = 'text-muted small mt-1';
+        container.appendChild(pricePerKgDisplay);
+
+        const addCakeButton = document.createElement('button');
+        addCakeButton.type = 'button';
+        addCakeButton.className = 'btn btn-primary w-100 mt-2';
+        addCakeButton.textContent = 'Add Custom Weight Cake';
+        addCakeButton.onclick = () => {
+          const enteredWeight = parseFloat(weightInput.value);
+          const priceOneKg = parseFloat(product.price_one_kg); 
+
+          if (isNaN(enteredWeight) || enteredWeight <= 0) {
+            alert('Please enter a valid positive custom weight for the cake.');
+            weightInput.focus(); return;
+          }
+          
+          if (enteredWeight === 0.5 && product.price_half_kg !== null) {
+              alert('For 0.5 Kg, please use the dedicated "0.5 Kg" button for its specific price.');
+              weightInput.value = ''; weightInput.focus(); return;
+          }
+          if (enteredWeight === 1.0 && product.price_one_kg !== null) {
+              alert('For 1 Kg, please use the dedicated "1 Kg" button.');
+              weightInput.value = ''; weightInput.focus(); return;
+          }
+
+          const calculatedPriceForThisCake = (enteredWeight / 1.0) * priceOneKg;
+          const sizeName = `${enteredWeight.toFixed(2)} Kg (Custom)`; 
+
+          addProductToSelection(product, calculatedPriceForThisCake, sizeName, enteredWeight);
+          if (sizeModalInstance) sizeModalInstance.hide();
+          weightInput.value = '';
+        };
+        container.appendChild(addCakeButton);
+    } else if (!hasOptions) { 
+        container.innerHTML = '<p class="text-danger">Cake price information is incomplete. Cannot set weight.</p>';
+    }
+
+  } else { 
+      const addOptionButton = (sizeName, priceValue) => {
+        const price = parseFloat(priceValue);
+        if (priceValue !== null && !isNaN(price)) {
+          hasOptions = true;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn btn-outline-primary mb-2 w-100';
+          btn.textContent = `${sizeName} - ₹${price.toFixed(2)}`;
+          btn.onclick = () => {
+            addProductToSelection(product, price, sizeName); 
+            if (sizeModalInstance) sizeModalInstance.hide();
+          };
+          container.appendChild(btn);
+        }
+      };
+      if (categoryLower.includes('pizza') || categoryLower.includes('milkshake') || categoryLower.includes('ice cream')) {
+        addOptionButton("Small", product.price_small);
+        addOptionButton("Medium", product.price_medium);
+        addOptionButton("Large", product.price_large);
+      }
+  }
+
+  if (!hasOptions && !categoryLower.includes('cake')) { 
+    if (product.selling_price !== null && !isNaN(parseFloat(product.selling_price))) {
+        const fallbackBtn = document.createElement('button');
+        fallbackBtn.type = 'button';
+        fallbackBtn.className = 'btn btn-outline-secondary mb-2 w-100';
+        fallbackBtn.textContent = `Standard - ₹${parseFloat(product.selling_price).toFixed(2)}`;
+        fallbackBtn.onclick = () => {
+            addProductToSelection(product, parseFloat(product.selling_price), "Standard");
+            if (sizeModalInstance) sizeModalInstance.hide();
+        };
+        container.appendChild(fallbackBtn);
+        hasOptions = true;
+    }
+  }
+
+  if (!hasOptions) { 
+    container.innerHTML = '<p class="text-danger">No valid size or price options found for this product.</p>';
+  }
+
+  if (sizeModalInstance) sizeModalInstance.show();
+}
+
+
+function addProductToSelection(product, price, sizeName, customWeight = null) {
+  const existingProductIndex = findProductIndex(product.id, sizeName);
+  if (existingProductIndex > -1) {
+    selectedProducts[existingProductIndex].quantity += 1;
+  } else {
+    selectedProducts.push({
+      id: product.id, name: product.name, price: price, 
+      sizeName: sizeName, quantity: 1,
+      isCakeWithCustomWeight: customWeight !== null, customWeight: customWeight
+    });
+  }
+  renderSelectedProducts();
+}
+
+function findProductIndex(productId, sizeName) {
+  const searchSizeName = sizeName || "Standard";
+  return selectedProducts.findIndex(p => p.id === productId && (p.sizeName || "Standard") === searchSizeName);
+}
+
+function renderSelectedProducts() {
+  const tbody = document.querySelector('#selectedProductsTable tbody');
+  tbody.innerHTML = ''; 
+  let totalInvoiceAmount = 0;
+
+  if (selectedProducts.length === 0) {
+    const noProductsRowHTML = `<tr id="noProductsRow"><td colspan="5" class="text-center text-muted">No products added yet.</td></tr>`;
+    tbody.innerHTML = noProductsRowHTML; 
+  } else {
+    selectedProducts.forEach(p => {
+      const itemTotal = p.price * p.quantity;
+      totalInvoiceAmount += itemTotal;
+      const tr = document.createElement('tr');
+      const displaySizeName = p.sizeName || 'Standard';
+      const escapedDisplaySizeName = displaySizeName.replace(/'/g, "\\'");
+      tr.innerHTML = `
+        <td>
+          ${p.name} (${displaySizeName})
+          <input type="hidden" name="product_id[]" value="${p.id}">
+          <input type="hidden" name="item_price[]" value="${p.price.toFixed(2)}">
+          <input type="hidden" name="item_size_name[]" value="${displaySizeName}">
+          ${p.isCakeWithCustomWeight ? `<input type="hidden" name="item_custom_weight[]" value="${p.customWeight.toFixed(2)}">` : ''}
+        </td>
+        <td>${p.price.toFixed(2)}</td>
+        <td>
+          <input type="number" name="quantity[]" value="${p.quantity}" min="1" class="form-control form-control-sm quantity-input" style="width: 75px;" onchange="updateQuantity(${p.id}, '${escapedDisplaySizeName}', this.value)">
+        </td>
+        <td>${itemTotal.toFixed(2)}</td>
+        <td>
+          <button type="button" class="btn btn-danger btn-sm" onclick="removeProduct(${p.id}, '${escapedDisplaySizeName}')">
+            <i class="fas fa-trash-alt"></i> Remove
+          </button>
+        </td>
+      `; 
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('totalAmount').innerText = totalInvoiceAmount.toFixed(2);
+}
+
+function updateQuantity(productId, sizeName, qtyStr) {
+  const index = findProductIndex(productId, sizeName);
+  if (index > -1) {
+    let newQuantity = parseInt(qtyStr);
+    if (isNaN(newQuantity) || newQuantity < 1) newQuantity = 1;
+    selectedProducts[index].quantity = newQuantity;
+    renderSelectedProducts();
+  }
+}
+
+function removeProduct(productId, sizeName) {
+  const index = findProductIndex(productId, sizeName);
+  if (index > -1) {
+    selectedProducts.splice(index, 1);
+    renderSelectedProducts(); 
+  }
+}
+</script>
+<style>
+    .quantity-input { text-align: center; }
+</style>
+{% endblock %}
