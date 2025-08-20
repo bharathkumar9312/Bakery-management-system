@@ -1,4 +1,4 @@
-# invoices/models.py
+
 from django.db import models
 from products.models import Product
 from customers.models import Customers  
