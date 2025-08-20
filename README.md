@@ -49,5 +49,36 @@ python manage.py createsuperuser
 # Run the server
 python manage.py runserver
 
-# Screen Shots
+# ScreenShots
+
+### Home
+![Home](screenshots/home.png)
+
+### Menu
+![Menu](screenshots/menu.png)
+
+### Category
+![Category](screenshots/category.png)
+
+### Orders
+![Orders](screenshots/orders.png)
+
+### Order List
+![Order List](screenshots/orderlist.png)
+
+### Bill
+![Bill](screenshots/bill.png)
+
+### Bill List
+![Bill List](screenshots/billlist.png)
+
+### Add Product
+![Add Product](screenshots/add product.png)
+
+### Sales Report 1
+![Sales Report](screenshots/salesreport1.png)
+
+### Sales Report 2
+![Sales Report](screenshots/salesreport2.png)
+
 
