@@ -73,7 +73,7 @@ python manage.py runserver
 ![Bill List](screenshots/billlist.png)
 
 ### Add Product
-![Add Product](screenshots/add_product.png)
+![Add Product](screenshots/addproduct.png)
 
 ### Sales Report 1
 ![Sales Report](screenshots/salesreport1.png)
