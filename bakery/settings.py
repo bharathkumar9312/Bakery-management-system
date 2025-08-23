@@ -3,19 +3,20 @@
 from pathlib import Path
 import os
 import dj_database_url 
+from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")   # don't hardcode in production
 DEBUG = os.getenv("DEBUG", "1") == "1"
 
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
 
 
 # Application definition
@@ -73,7 +74,7 @@ WSGI_APPLICATION = 'bakery.wsgi.application'
 
 DATABASES = {
     "default": dj_database_url.config(
-        default="postgresql://postgres:bharath@localhost:5432/bakeryDB",  # local DB
+        default=os.getenv("DATABASE_URL"),
         conn_max_age=600,
         ssl_require=False,
     )
@@ -121,6 +122,8 @@ STATICFILES_DIRS=[
 
 MEDIA_URL= '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 
@@ -130,16 +133,16 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ---- Security (for CSRF) ----
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000").split(",")
 
-# Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' # Production ku
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
 
-EMAIL_HOST = 'smtp.gmail.com'  # Example: Gmail
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'bharathbharathkumar807@gmail.com'  # Unga email
-EMAIL_HOST_PASSWORD = 'rvuh kbjv lrjz ladz'  
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER # Default aa unga email la irunthu pogum
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 OWNER_EMAIL_ADDRESS = 'bharathbkbharathbk0@gmail.com' # Owner oda email
 SHOP_NAME = "Cake Bro" # Shop per inga vechikalam
