@@ -27,13 +27,17 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+     'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary',
     'widget_tweaks',
     'users',
     'customers',
     'invoices',
     'products',
     'orders',
+   
+
 
 ]
 
@@ -120,8 +124,8 @@ STATICFILES_DIRS=[
     BASE_DIR/'static'
 ]
 
-MEDIA_URL= '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# MEDIA_URL= '/media/'
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
@@ -145,4 +149,13 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 OWNER_EMAIL_ADDRESS = 'bharathbkbharathbk0@gmail.com' # Owner oda email
-SHOP_NAME = "Cake Bro" # Shop per inga vechikalam
+SHOP_NAME = "Cake Bro" 
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
